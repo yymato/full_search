@@ -56,25 +56,31 @@ if not response:
 
 # Преобразуем ответ в json-объект
 json_response = response.json()
-
-# Получаем первую найденную организацию.
-organization = json_response["features"][0]
-# Название организации.
-org_name = organization["properties"]["CompanyMetaData"]["name"]
-# Адрес организации.
-org_address = organization["properties"]["CompanyMetaData"]["address"]
-org_hour = organization["properties"]["CompanyMetaData"]['Hours']['text']
-# Получаем координаты ответа.
-org_point = f"{organization["geometry"]["coordinates"][0]},{organization["geometry"]["coordinates"][1]}"
-
-print('\n'.join([f'адрес {org_address}', f'Название {org_name}', f'Время работы {org_hour}']))
+org_points = []
+for organization in json_response["features"][:10]:
+    org_name = organization["properties"]["CompanyMetaData"]["name"]
+    # Адрес организации.
+    org_address = organization["properties"]["CompanyMetaData"]["address"]
+    try:
+        org_hour = organization["properties"]["CompanyMetaData"]['Hours']['text']
+    except Exception:
+        org_hour = 'Нет данных'
+    # Получаем координаты ответа.
+    org_point = f"{organization["geometry"]["coordinates"][0]},{organization["geometry"]["coordinates"][1]}"
+    if 'круглосуточно' in org_hour:
+        org_points.append(org_point + ',pm2dgl')
+    elif org_hour != 'Нет данных':
+        org_points.append(org_point + ',pm2bll')
+    else:
+        org_points.append(org_point + ',pm2grl')
+    print('\n'.join([f'адрес {org_address}', f'Название {org_name}', f'Время работы {org_hour}', f'Расстояние {lonlat_dist(self_point, org_point)}']))
 
 map_apikey = "f3a0fe3a-b07e-4840-a1da-06f18b2ddf13"
 
 # Собираем параметры для запроса к StaticMapsAPI:
 map_params = {
     "ll": ",".join([toponym_longitude, toponym_lattitude]),
-    "pt": '~'.join(["{0},pm2dgl".format(org_point), "{0},ya_ru".format(self_point)]),
+    "pt": '~'.join([*org_points, "{0},ya_ru".format(self_point)]),
     "apikey": map_apikey,
 }
 
@@ -82,14 +88,3 @@ map_api_server = "https://static-maps.yandex.ru/v1"
 # ... и выполняем запрос
 response = requests.get(map_api_server, params=map_params)
 drawer(response.content)
-
-matrix_api = 'f08b394a-dcdb-473c-b000-e7448f7d6d39' # Апи Матрицы расстояний
-matrix_server = 'https://api.routing.yandex.net/v2/route'
-matrix_params = {
-    'apikey': matrix_api,
-    'waypoints': '|'.join([self_point, org_point]),
-    'mode': 'driving'
-}
-
-
-print(f'Расстояние {lonlat_dist(self_point, org_point)}')
