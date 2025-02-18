@@ -6,6 +6,7 @@ import requests
 from PIL import Image
 
 from modules.drawer import drawer
+from modules.lonlat_dist import lonlat_dist
 from modules.size_func import selection_size
 
 # Пусть наше приложение предполагает запуск:
@@ -89,11 +90,6 @@ matrix_params = {
     'waypoints': '|'.join([self_point, org_point]),
     'mode': 'driving'
 }
-response = requests.get(matrix_server, params=matrix_params)
-legs = response.json()['route']['legs']
-distance = float(0)
-for leg in legs:
-    for step in leg['steps']:
-        distance += step['length']
 
-print(f'Расстояние {distance}')
+
+print(f'Расстояние {lonlat_dist(self_point, org_point)}')
